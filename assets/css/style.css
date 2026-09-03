@@ -138,7 +138,10 @@ ul,ol,dl,dd{ margin:0; padding:0; list-style:none; }
 @keyframes drawLine{ to{ stroke-dashoffset:0; } }
 @keyframes corePop{ from{ opacity:0; transform:scale(.4) rotate(-45deg); } to{ opacity:1; transform:none; } }
 
+/* direction:ltr обязателен: это латинское начертание, а во flex-строке
+   арабской версии буквы иначе выстраиваются справа налево — «AKRUB» */
 .splash__word{
+  direction:ltr;
   display:flex; gap:.08em; justify-content:center;
   font-family:"Cormorant Garamond", Georgia, serif; font-weight:600;
   font-size:clamp(34px,8.4vw,66px); letter-spacing:.24em; text-indent:.24em;
@@ -193,11 +196,16 @@ main,.header,.topbar,.footer,.cart,.lightbox{ position:relative; z-index:1; }
 html[lang="ar"] .kicker{ letter-spacing:0; font-size:14px; }
 
 .h2{ font-size:clamp(30px, 4.4vw, 52px); letter-spacing:.005em; white-space:pre-line; }
+/* Градиент живёт на самих словах, а не на заголовке целиком: когда слова
+   выезжают по очереди, браузер не успевает пересчитать обрезку по тексту
+   на родителе — буквы на миг сваливаются в кучу. */
 .hero__title{
   font-size:clamp(38px, 6.2vw, 76px);
   font-weight:600; letter-spacing:-.01em; white-space:pre-line;
-  margin:0 0 22px;
-  background:linear-gradient(180deg, #FDF6E7 10%, var(--gold-lt) 116%);
+  margin:0 0 22px; color:var(--cream);
+}
+.hero__title .w{
+  background:linear-gradient(180deg, #FDF6E7 6%, var(--gold-lt) 128%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
 html[lang="ar"] .hero__title{ line-height:1.35; }
@@ -473,12 +481,15 @@ html[lang="ar"] .hero__chip-txt{ letter-spacing:0; text-transform:none; font-siz
   mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }
-.marquee__track{ display:flex; gap:36px; width:max-content; animation:slide 46s linear infinite; }
+/* Отступ живёт внутри самих элементов, а не в gap дорожки: при gap половина
+   ширины не совпадает с длиной одной копии списка, и на каждом круге лента
+   дёргалась и уезжала. Теперь 50% — ровно одна копия, стык незаметен. */
+.marquee__track{ display:flex; width:max-content; animation:slide 46s linear infinite; }
 html[dir="rtl"] .marquee__track{ animation-direction:reverse; }
-.marquee:hover .marquee__track{ animation-play-state:paused; }
 .marquee__track span{
   font-family:var(--f-display); font-size:20px; color:#8FA9A0;
   display:inline-flex; align-items:center; gap:36px; white-space:nowrap;
+  padding-inline-end:36px;
 }
 .marquee__track span::after{ content:"✦"; color:var(--gold); font-size:12px; }
 @keyframes slide{ to{ transform:translateX(-50%); } }
@@ -587,9 +598,12 @@ html[dir="rtl"] .marquee__track{ animation-direction:reverse; }
 .menu__group-title::after{ content:""; flex:1; height:1px; background:linear-gradient(90deg, var(--line), transparent); }
 html[dir="rtl"] .menu__group-title::after{ background:linear-gradient(-90deg, var(--line), transparent); }
 
-.menu__grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(268px,1fr)); gap:20px; }
+/* Не сетка, а гибкая строка: сетка оставляла пустые колонки справа, когда
+   в разделе, скажем, две позиции. Здесь неполный ряд встаёт по центру. */
+.menu__grid{ display:flex; flex-wrap:wrap; justify-content:center; gap:20px; }
 
 .card{
+  flex:1 1 260px; max-width:300px;
   display:flex; flex-direction:column; overflow:hidden; position:relative;
   border:1px solid var(--line-soft); border-radius:var(--r-lg);
   background:linear-gradient(180deg, var(--surface-2), var(--surface));
@@ -682,6 +696,11 @@ html[lang="ar"] .badge{ letter-spacing:0; text-transform:none; font-size:11.5px;
 .stepper button:hover{ background:rgba(201,162,39,.16); border-color:var(--gold); }
 .stepper button .ic{ stroke:currentColor; width:16px; height:16px; }
 .stepper__q{ font-family:var(--f-display); font-size:22px; font-weight:700; color:var(--cream); min-width:32px; text-align:center; }
+
+/* на телефоне карточка занимает всю ширину, ограничение ей там ни к чему */
+@media (max-width:600px){
+  .card{ max-width:none; flex-basis:100%; }
+}
 
 .menu__empty{ text-align:center; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:12px; }
 

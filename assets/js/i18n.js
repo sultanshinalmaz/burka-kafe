@@ -86,7 +86,6 @@ window.BURKA_I18N = {
 
     reviewsKicker: 'Отзывы',
     reviewsTitle: 'Что о нас говорят',
-    reviewsDemo: 'Демонстрационные отзывы. Замените их настоящими в файле assets/js/data.js и поставьте reviewsAreDemo: false.',
     reviewsCta: 'Оставить отзыв',
 
     deliveryKicker: 'Доставка',
@@ -175,7 +174,9 @@ window.BURKA_I18N = {
     cartLabel: 'السلة',
 
     heroKicker: 'مكة المكرمة · طعام منزلي',
-    heroTitle: 'طعم البيت\nعلى بُعد خطوات من الحرم',
+    /* без огласовок: в заголовках их обычно не ставят, а на крупном кегле
+       Amiri сдвигал дамму в сторону от буквы */
+    heroTitle: 'طعم البيت\nعلى بعد خطوات من الحرم',
     heroText: 'في العمرة والحج تريد أن تنشغل بالعبادة لا بالبحث عن مطعم. نطبخ طعامًا قوقازيًا منزليًا ونوصله إلى فندقك مباشرة.',
     heroBtnMenu: 'تصفّح القائمة',
     heroBtnOrder: 'راسلنا على واتساب',
@@ -231,7 +232,6 @@ window.BURKA_I18N = {
 
     reviewsKicker: 'الآراء',
     reviewsTitle: 'ماذا يقول ضيوفنا',
-    reviewsDemo: 'هذه آراء تجريبية. استبدلها بآراء حقيقية في ملف assets/js/data.js واضبط reviewsAreDemo على false.',
     reviewsCta: 'اكتب رأيك',
 
     deliveryKicker: 'التوصيل',
@@ -376,7 +376,6 @@ window.BURKA_I18N = {
 
     reviewsKicker: 'Reviews',
     reviewsTitle: 'What guests say',
-    reviewsDemo: 'These are demo reviews. Replace them with real ones in assets/js/data.js and set reviewsAreDemo to false.',
     reviewsCta: 'Leave a review',
 
     deliveryKicker: 'Delivery',

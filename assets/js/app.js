@@ -198,10 +198,25 @@
     return 'ru';
   }
 
+  /* Если гость пришёл по ссылке с ?lang=, этот параметр при каждой
+     перезагрузке перебивал бы его собственный выбор в переключателе.
+     Поэтому при смене языка переписываем параметр под новый.
+     Адрес без параметра не трогаем — пусть остаётся чистым. */
+  function syncUrlLang() {
+    if (!window.history || !history.replaceState) return;
+    try {
+      var u = new URL(location.href);
+      if (!u.searchParams.has('lang')) return;
+      if (u.searchParams.get('lang') === lang) return;
+      u.searchParams.set('lang', lang);
+      history.replaceState(null, '', u.toString());
+    } catch (e) {}
+  }
+
   function setLang(next, save) {
     lang = LANGS.indexOf(next) > -1 ? next : 'ru';
     T = I18N[lang];
-    if (save !== false) store(LS_LANG, lang);
+    if (save !== false) { store(LS_LANG, lang); syncUrlLang(); }
 
     document.documentElement.lang = T._htmlLang;
     document.documentElement.dir  = T._dir;
@@ -345,15 +360,6 @@
     if (d.hit)      badges += '<span class="badge badge--hit">' + esc(T.badgeHit) + '</span>';
     if (d.preorder) badges += '<span class="badge badge--pre">' + esc(T.badgePreorder) + '</span>';
 
-    var control = qty
-      ? '<div class="stepper">' +
-          '<button data-act="dec" data-id="' + d.id + '" aria-label="−">' + icon('minus') + '</button>' +
-          '<span class="stepper__q">' + qty + '</span>' +
-          '<button data-act="inc" data-id="' + d.id + '" aria-label="+">' + icon('plus') + '</button>' +
-        '</div>'
-      : '<button class="card__add" data-act="add" data-id="' + d.id + '">' +
-          icon('plus') + '<span>' + esc(T.btnAdd) + '</span></button>';
-
     return '<article class="card reveal' + (qty ? ' is-in-cart' : '') + '" data-id="' + d.id + '">' +
              '<div class="card__media' + (d.img ? ' is-zoomable" data-zoom="' + d.id : '') + '">' + media +
                '<span class="card__frame" aria-hidden="true"></span>' +
@@ -364,9 +370,38 @@
                '<span class="card__num">' + esc(T.dishNo) + ' ' + d.id + '</span>' +
                '<h3 class="card__name">' + esc(tr(d.name)) + '</h3>' +
                '<p class="card__desc">' + esc(tr(d.desc)) + '</p>' +
-               control +
+               '<div class="card__control">' + controlHTML(d.id) + '</div>' +
              '</div>' +
            '</article>';
+  }
+
+  /* Кнопка «В корзину» или счётчик. Вынесено отдельно, чтобы при изменении
+     заказа перерисовывать только этот кусочек, а не всё меню целиком. */
+  function controlHTML(id) {
+    var qty = cart[id] || 0;
+    if (!qty) {
+      return '<button class="card__add" data-act="add" data-id="' + id + '">' +
+             icon('plus') + '<span>' + esc(T.btnAdd) + '</span></button>';
+    }
+    return '<div class="stepper">' +
+             '<button data-act="dec" data-id="' + id + '" aria-label="−">' + icon('minus') + '</button>' +
+             '<span class="stepper__q">' + qty + '</span>' +
+             '<button data-act="inc" data-id="' + id + '" aria-label="+">' + icon('plus') + '</button>' +
+           '</div>';
+  }
+
+  /* Точечное обновление карточки: пересобирать #menuGrid нельзя — карточки
+     пересоздаются, теряют класс появления и на миг пропадают с экрана. */
+  function refreshCard(id) {
+    var card = $('#menuGrid .card[data-id="' + id + '"]');
+    if (!card) return;
+    card.classList.toggle('is-in-cart', !!cart[id]);
+    var box = $('.card__control', card);
+    if (box) box.innerHTML = controlHTML(id);
+  }
+
+  function refreshAllCards() {
+    $$('#menuGrid .card').forEach(function (el) { refreshCard(+el.dataset.id); });
   }
 
   function renderMenu() {
@@ -421,19 +456,21 @@
 
   function addToCart(id) {
     cart[id] = (cart[id] || 0) + 1;
-    saveCart();
+    saveCart(id);
     toast(tr(dishById(id).name) + ' · ' + T.btnAdded);
   }
 
   function changeQty(id, delta) {
     cart[id] = (cart[id] || 0) + delta;
     if (cart[id] <= 0) delete cart[id];
-    saveCart();
+    saveCart(id);
   }
 
-  function saveCart() {
+  /* id — какая карточка изменилась. Без него обновляем все (например,
+     после очистки корзины). Меню при этом не пересобирается. */
+  function saveCart(id) {
     store(LS_CART, cart);
-    renderMenu();
+    if (id == null) refreshAllCards(); else refreshCard(id);
     renderCart();
   }
 
@@ -638,7 +675,12 @@
   /* ───────────────────────────── отзывы ────────────────────────────── */
 
   function renderReviews() {
-    $('#reviewsDemo').hidden = !D.reviewsAreDemo;
+    /* Пока reviewsAreDemo: true, в отзывах стоят учебные тексты.
+       На странице об этом ничего не сказано — напоминание видит только тот,
+       кто открыл код, поэтому дублируем его в консоль разработчика. */
+    if (D.reviewsAreDemo && window.console && console.info) {
+      console.info('Burka: отзывы демонстрационные. Замените их в assets/js/data.js и поставьте reviewsAreDemo: false.');
+    }
 
     $('#reviewsGrid').innerHTML = D.reviews.map(function (r) {
       var stars = '';
