@@ -117,7 +117,10 @@
       cap(imgReady, DARK + ANIM);
     }
 
-    cap(function () { ready = true; }, DARK + ANIM + 1600);   // общая страховка
+    /* Общая страховка. Держать заставку дольше нельзя: пока она на экране,
+       страница заблокирована от прокрутки, и на медленном мобильном
+       интернете это читается как зависший сайт. */
+    cap(function () { ready = true; }, DARK + ANIM + 900);
 
     (function wait() {
       if (ready && performance.now() >= DARK + ANIM) return finish();
@@ -521,6 +524,7 @@
     var el = $('#cart');
     el.classList.toggle('is-open', open);
     el.setAttribute('aria-hidden', open ? 'false' : 'true');
+    $('#overlay').classList.remove('overlay--nav');
     $('#overlay').hidden = !open;
     document.body.classList.toggle('is-locked', open);
     if (!open) checkoutStep = 0;
@@ -870,18 +874,22 @@
       $('#langBtn').setAttribute('aria-expanded', 'false');
     });
 
-    /* мобильное меню */
-    $('#burger').addEventListener('click', function () {
-      var open = !$('#nav').classList.contains('is-open');
+    /* мобильное меню: вместе со шторкой показываем затемнение, по нему
+       меню и закрывается — на телефоне это привычнее, чем искать крестик */
+    function openNav(open) {
       $('#nav').classList.toggle('is-open', open);
       $('#burger').setAttribute('aria-expanded', open);
       document.body.classList.toggle('is-locked', open);
+      $('#overlay').classList.toggle('overlay--nav', open);
+      $('#overlay').hidden = !open;
+    }
+
+    $('#burger').addEventListener('click', function () {
+      openNav(!$('#nav').classList.contains('is-open'));
     });
     $('#nav').addEventListener('click', function (e) {
       if (e.target.tagName !== 'A') return;
-      $('#nav').classList.remove('is-open');
-      $('#burger').setAttribute('aria-expanded', 'false');
-      document.body.classList.remove('is-locked');
+      openNav(false);
     });
 
     /* фильтры меню */
@@ -919,7 +927,11 @@
     $('#cartBtn').addEventListener('click', function () { openCart(true); });
     $('#cartFab').addEventListener('click', function () { openCart(true); });
     $('#cartClose').addEventListener('click', function () { openCart(false); });
-    $('#overlay').addEventListener('click', function () { openCart(false); });
+    /* тап по затемнению закрывает то, что открыто */
+    $('#overlay').addEventListener('click', function () {
+      if ($('#nav').classList.contains('is-open')) openNav(false);
+      else openCart(false);
+    });
     $('#cartEmptyBtn').addEventListener('click', function () {
       openCart(false);
       $('#menu').scrollIntoView({ behavior: 'smooth' });

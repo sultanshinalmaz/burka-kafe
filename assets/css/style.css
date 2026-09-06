@@ -48,6 +48,7 @@
   --f-display:  "Cormorant Garamond", "Times New Roman", Georgia, serif;
   --f-body:     "Manrope", -apple-system, "Segoe UI", Roboto, sans-serif;
 
+  --head-h:     74px;
   --wrap:       1220px;
   --r:          14px;
   --r-lg:       22px;
@@ -88,10 +89,11 @@ body{
   font-size:16px;
   line-height:1.65;
   font-weight:350;
-  /* закрытое мобильное меню стоит справа за краем экрана — clip не даёт
-     ему растянуть страницу вбок (hidden оставлен запасным вариантом) */
+  /* Закрытое мобильное меню стоит справа за краем экрана и не должно
+     растягивать страницу вбок. Раньше здесь стоял ещё overflow-x:clip —
+     убран: он всплывает на область просмотра целиком, а на телефонах
+     это местами ломает вертикальную прокрутку. */
   overflow-x:hidden;
-  overflow-x:clip;
   -webkit-font-smoothing:antialiased;
 }
 body.is-locked{ overflow:hidden; }
@@ -285,10 +287,19 @@ html[dir="rtl"] .about__text .rule{ justify-content:flex-end; }
   /* выше выехавшего меню (70), но ниже затемнения и корзины (80/90) —
      чтобы бургер оставался нажимаемым и превращался в крестик */
   position:sticky; inset-block-start:0; z-index:75;
-  background:rgba(16,13,9,.72); backdrop-filter:blur(14px);
+  background:rgba(16,13,9,.95);
   border-block-end:1px solid transparent; transition:.3s var(--ease);
 }
-.header.is-stuck{ background:rgba(16,13,9,.95); border-block-end-color:var(--line-soft); box-shadow:0 10px 40px -24px #000; }
+.header.is-stuck{ border-block-end-color:var(--line-soft); box-shadow:0 10px 40px -24px #000; }
+
+/* Размытие подложки включаем только там, где меню — обычная строка ссылок.
+   На телефоне его быть не должно: backdrop-filter делает шапку системой
+   координат для position:fixed, и выехавшее меню цепляется за неё вместо
+   экрана — висит куском под шапкой и уезжает вбок при прокрутке. */
+@media (min-width:1001px){
+  .header{ background:rgba(16,13,9,.72); backdrop-filter:blur(14px); }
+  .header.is-stuck{ background:rgba(16,13,9,.95); }
+}
 .header__in{ display:flex; align-items:center; gap:22px; min-height:74px; }
 
 .logo{ display:flex; align-items:center; gap:12px; flex:none; }
@@ -373,6 +384,7 @@ html[dir="rtl"] .about__text .rule{ justify-content:flex-end; }
 
 /* на узких экранах ужимаем шапку, иначе бургер уезжает за край */
 @media (max-width:430px){
+  :root{ --head-h:66px; }
   .header__in{ gap:10px; min-height:66px; }
   .logo{ gap:9px; }
   .logo__mark{ width:36px; height:36px; border-radius:10px; }
@@ -387,13 +399,19 @@ html[dir="rtl"] .about__text .rule{ justify-content:flex-end; }
 
 @media (max-width:1000px){
   .burger{ display:block; }
+  /* обе вертикальные границы прижаты к экрану — панель гарантированно
+     во всю высоту, без завязки на 100dvh и адресную строку браузера */
   .nav{
-    position:fixed; inset-block-start:0; inset-inline-end:0; z-index:70;
-    width:340px; max-width:88%; height:100dvh; flex-direction:column; gap:2px;
+    position:fixed; inset-block:0; inset-inline-end:0; z-index:70;
+    width:340px; max-width:86%; flex-direction:column; gap:2px;
     background:var(--surface); border-inline-start:1px solid var(--line);
-    padding:96px 20px 32px; margin:0;
+    box-shadow:-24px 0 60px -30px #000;
+    padding:calc(var(--head-h, 74px) + 24px) 20px calc(32px + env(safe-area-inset-bottom));
+    margin:0;
     transform:translateX(100%); transition:transform .35s var(--ease); overflow-y:auto;
+    overscroll-behavior:contain;
   }
+  html[dir="rtl"] .nav{ box-shadow:24px 0 60px -30px #000; }
   html[dir="rtl"] .nav{ transform:translateX(-100%); }
   /* открытое состояние дублируем для RTL: иначе правило выше перебивает его
      по специфичности и в арабской версии меню не выезжает */
@@ -960,6 +978,17 @@ html[lang="ar"] .contact__label{ letter-spacing:0; text-transform:none; font-siz
 /* ─────────────────────────── 21. Корзина ────────────────────────────── */
 .overlay{ position:fixed; inset:0; z-index:80; background:rgba(8,6,4,.74); backdrop-filter:blur(4px); animation:fade .25s; }
 @keyframes fade{ from{ opacity:0 } }
+/* под выехавшим меню затемнение должно лежать ниже него (меню — z-index 70) */
+.overlay.overlay--nav{ z-index:65; }
+
+/* пока открыто меню, корзина или лайтбокс — плавающие кнопки убираем,
+   иначе они висят поверх шторки. visibility нужен вдобавок к прозрачности:
+   у .fab--top своя игра с opacity, и одной прозрачности не хватает */
+body.is-locked .fab,
+body.is-locked .fab--top,
+body.is-locked .cart-fab{
+  opacity:0 !important; visibility:hidden !important; pointer-events:none !important;
+}
 
 .cart{
   position:fixed; z-index:90; inset-block:0; inset-inline-end:0;
@@ -1079,6 +1108,23 @@ html[dir="rtl"] .lightbox__nav--next .ic{ transform:rotate(180deg); }
 .gallery__item.reveal{ transform:translateY(30px) scale(.97); }
 .card.reveal.is-in,
 .gallery__item.reveal.is-in{ transform:none; }
+
+/* ─────────────── На телефоне анимации делаем легче ─────────────────── */
+/* Размытия подложки и длинные проезды на сенсорных экранах дают рывки:
+   каждый кадр прокрутки пересчитывается заново. Оставляем те же движения,
+   но короче и без дорогих эффектов. */
+@media (hover:none){
+  .ornament{ position:absolute; inset:0 0 auto 0; height:120vh; }
+  .badge{ backdrop-filter:none; }
+  .card__zoom{ backdrop-filter:none; background:rgba(16,13,9,.74); }
+  .overlay{ backdrop-filter:none; background:rgba(8,6,4,.82); }
+  .reveal{ transform:translateY(16px); transition-duration:.5s; }
+  .card.reveal,
+  .gallery__item.reveal{ transform:translateY(16px) scale(.995); }
+  .card__media img,
+  .gallery__item img{ transition:none; }
+  .rule .vine-half *{ transition-duration:1s; }
+}
 
 @media (prefers-reduced-motion:reduce){
   .reveal,.card.reveal,.gallery__item.reveal{ opacity:1; transform:none; transition:none; }
